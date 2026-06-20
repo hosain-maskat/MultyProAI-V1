@@ -1,0 +1,184 @@
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+
+@theme {
+  --color-brand-50: #f0f0ff;
+  --color-brand-100: #e0e0ff;
+  --color-brand-200: #c4b5fd;
+  --color-brand-300: #a78bfa;
+  --color-brand-400: #8b5cf6;
+  --color-brand-500: #7c3aed;
+  --color-brand-600: #6d28d9;
+  --color-brand-700: #5b21b6;
+  --color-brand-800: #4c1d95;
+  --color-brand-900: #3b0764;
+
+  --color-zinc-850: #1f1f23;
+  --color-zinc-925: #131316;
+  --color-zinc-950: #09090b;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(113, 113, 122, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(113, 113, 122, 0.5);
+}
+
+/* Markdown content styling */
+.prose-chat {
+  line-height: 1.75;
+}
+
+.prose-chat h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: white;
+}
+
+.prose-chat h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: #e4e4e7;
+}
+
+.prose-chat h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: #d4d4d8;
+}
+
+.prose-chat p {
+  margin-bottom: 0.75rem;
+  color: #d4d4d8;
+}
+
+.prose-chat ul,
+.prose-chat ol {
+  margin-bottom: 0.75rem;
+  padding-left: 1.5rem;
+  color: #d4d4d8;
+}
+
+.prose-chat li {
+  margin-bottom: 0.25rem;
+}
+
+.prose-chat code {
+  background-color: rgba(113, 113, 122, 0.2);
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  color: #c4b5fd;
+}
+
+.prose-chat pre {
+  background-color: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+  margin-bottom: 1rem;
+  margin-top: 0.5rem;
+}
+
+.prose-chat pre code {
+  background: none;
+  padding: 0;
+  color: #e4e4e7;
+  font-size: 0.85em;
+}
+
+.prose-chat table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.prose-chat th {
+  background-color: #27272a;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: #e4e4e7;
+  border-bottom: 1px solid #3f3f46;
+}
+
+.prose-chat td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #27272a;
+  color: #a1a1aa;
+}
+
+.prose-chat blockquote {
+  border-left: 3px solid #7c3aed;
+  padding-left: 1rem;
+  margin: 0.75rem 0;
+  color: #a1a1aa;
+  font-style: italic;
+}
+
+.prose-chat strong {
+  color: #f4f4f5;
+  font-weight: 600;
+}
+
+.prose-chat em {
+  color: #c4b5fd;
+}
+
+.prose-chat hr {
+  border-color: #27272a;
+  margin: 1.5rem 0;
+}
+
+.prose-chat a {
+  color: #8b5cf6;
+  text-decoration: underline;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.typing-dot {
+  animation: pulse-dot 1.4s infinite;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
