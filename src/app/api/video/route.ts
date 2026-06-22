@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import ytSearch from "yt-search";
+import ytdl from "@distube/ytdl-core";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -11,10 +12,12 @@ export async function GET(req: NextRequest) {
     const videos = r.videos;
     
     if (videos && videos.length > 0) {
-      const videoId = videos[0].videoId;
+      const video = videos[0];
+      const videoId = video.videoId;
       
       if (download) {
-        // Redirect to a popular YouTube downloader service
+        // ytdl-core is currently failing due to YouTube cipher updates.
+        // Redirecting to ssyoutube.com for an easier 1-click download experience.
         return NextResponse.redirect(`https://ssyoutube.com/watch?v=${videoId}`);
       } else {
         // Return the YouTube embed URL

@@ -26,12 +26,14 @@ import {
   Plus,
   Menu,
   MessageSquare,
-  Pencil
+  Pencil,
+  Square
 } from "lucide-react";
 import Link from "next/link";
 import type { Tool } from "@/lib/tools";
 import MarkdownRenderer from "./MarkdownRenderer";
 import LiveChat from "./LiveChat";
+import FeedbackModal from "./FeedbackModal";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 
@@ -69,6 +71,7 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
   const [isLiveOpen, setIsLiveOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [userApiKey, setUserApiKey] = useState("");
   
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -175,6 +178,9 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
   const [images, setImages] = useState<string[]>([]);
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDoc[]>([]);
   const [isListening, setIsListening] = useState(false);
+  const [interimResult, setInterimResult] = useState("");
+  const [recordingTime, setRecordingTime] = useState(0);
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -194,17 +200,18 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
       recognitionRef.current.interimResults = true;
       
       recognitionRef.current.onresult = (event: any) => {
-        let interimTranscript = "";
+        let currentInterim = "";
         let finalTranscript = "";
 
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
             finalTranscript += event.results[i][0].transcript;
           } else {
-            interimTranscript += event.results[i][0].transcript;
+            currentInterim += event.results[i][0].transcript;
           }
         }
         
+        setInterimResult(currentInterim);
         if (finalTranscript) {
           setInput((prev) => prev + " " + finalTranscript.trim());
         }
@@ -213,22 +220,35 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
       recognitionRef.current.onerror = (event: any) => {
         console.error("Speech recognition error", event.error);
         setIsListening(false);
+        if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
       };
 
       recognitionRef.current.onend = () => {
         setIsListening(false);
+        if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
       };
     }
   }, []);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const toggleListening = () => {
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
+      if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
     } else {
       try {
         recognitionRef.current?.start();
         setIsListening(true);
+        setRecordingTime(0);
+        recordingIntervalRef.current = setInterval(() => {
+          setRecordingTime(prev => prev + 1);
+        }, 1000);
       } catch (e) {
         console.error(e);
       }
@@ -302,12 +322,36 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
       const isImage = file.type.startsWith('image/');
       
       if (isImage) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const base64 = (e.target?.result as string).split(',')[1];
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round((width * MAX_HEIGHT) / height);
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Compress to JPEG with 0.7 quality
+          const base64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
           setImages(prev => [...prev, base64]);
         };
-        reader.readAsDataURL(file);
+        img.src = URL.createObjectURL(file);
       } else if (isText) {
         const text = await file.text();
         setUploadedDocs(prev => [...prev, { name: file.webkitRelativePath || file.name, content: text, type: 'text', folder: folderName }]);
@@ -344,6 +388,8 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
     }
   }, [input]);
 
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
   const speakText = (text: string, gender: "male" | "female", messageId: string) => {
     if ("speechSynthesis" in window) {
       window.speechSynthesis.cancel();
@@ -356,6 +402,7 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
       setSpeakingMessageId(messageId);
       const cleanText = text.replace(/[#*_~`]/g, "");
       const utterance = new SpeechSynthesisUtterance(cleanText);
+      utteranceRef.current = utterance;
       
       utterance.onend = () => {
         setSpeakingMessageId(null);
@@ -381,13 +428,15 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if ((!input.trim() && images.length === 0 && uploadedDocs.length === 0) || isLoading) return;
 
     if (isListening) {
       toggleListening();
     }
 
-    let finalContent = input.trim();
+    let finalContent = (input + " " + interimResult).trim();
+
+    if ((!finalContent && images.length === 0 && uploadedDocs.length === 0) || isLoading) return;
+
     if (uploadedDocs.length > 0) {
       const textDocs = uploadedDocs.filter(d => d.type === 'text');
       if (textDocs.length > 0) {
@@ -428,6 +477,7 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
 
     setMessages((prev) => [...prev, userMessage, assistantMessage]);
     setInput("");
+    setInterimResult("");
     setImages([]);
     setUploadedDocs([]);
     setIsLoading(true);
@@ -827,6 +877,14 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsFeedbackModalOpen(true)}
+              className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full text-blue-300 bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-colors text-sm font-medium"
+              title="Give Feedback"
+            >
+              <MessageSquare className="w-4 h-4" />
+              Feedback
+            </button>
             {messages.length > 0 && (
               <>
                 <button
@@ -903,6 +961,12 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
           </div>
         </div>
       )}
+
+      {/* Feedback Modal */}
+      <FeedbackModal 
+        isOpen={isFeedbackModalOpen} 
+        onClose={() => setIsFeedbackModalOpen(false)} 
+      />
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto min-h-0">
@@ -1027,7 +1091,7 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
                       </span>
                     </div>
 
-                    <div className="prose-chat text-sm bg-white text-black p-4 rounded-xl shadow-sm dark:bg-transparent dark:text-zinc-200" id={`message-content-${message.id}`}>
+                    <div className="prose-chat text-sm bg-zinc-900/50 border border-zinc-800/80 text-zinc-100 p-4 rounded-xl shadow-sm" id={`message-content-${message.id}`}>
                       {message.content ? (
                         <div className="prose prose-invert max-w-none prose-p:leading-relaxed prose-pre:my-0">
                           <MarkdownRenderer 
@@ -1277,7 +1341,7 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
                         <div className="p-1.5 rounded-md bg-cyan-500/10 text-cyan-400 group-hover:bg-cyan-500/20 transition-colors">
                           <Radio className="w-4 h-4" />
                         </div>
-                        Live Voice Mode
+                        Live Communication
                       </button>
                     </div>
                   </>
@@ -1286,20 +1350,39 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
 
               <textarea
                 ref={textareaRef}
-                value={input}
+                value={(input + (interimResult ? " " + interimResult : "")).trimStart()}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={`Ask ${tool.name} anything...`}
                 rows={1}
                 className="flex-1 bg-transparent text-white placeholder-zinc-500 resize-none focus:outline-none py-2 px-3 text-sm max-h-[200px] leading-relaxed"
               />
-              <button
-                type="submit"
-                disabled={(!input.trim() && images.length === 0) || isLoading}
-                className="p-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-white disabled:opacity-30 disabled:cursor-not-allowed hover:from-purple-600 hover:to-blue-600 transition-all flex-shrink-0"
-              >
-                <Send className="w-4 h-4" />
-              </button>
+              
+              {isListening && (
+                <div className="flex items-center gap-2 px-3 py-1.5 mr-2 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 animate-pulse font-medium text-xs">
+                  <div className="w-2 h-2 rounded-full bg-red-500" />
+                  {formatTime(recordingTime)}
+                </div>
+              )}
+
+              {input.trim() === "" && images.length === 0 && uploadedDocs.length === 0 && !isListening ? (
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  className="p-2.5 rounded-xl bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-all flex-shrink-0"
+                  title="Voice Input"
+                >
+                  <Mic className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={(!input.trim() && images.length === 0 && uploadedDocs.length === 0 && !isListening) || isLoading}
+                  className="p-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-white disabled:opacity-30 disabled:cursor-not-allowed hover:from-purple-600 hover:to-blue-600 transition-all flex-shrink-0"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </form>
           <p className="text-xs text-zinc-600 text-center mt-2">

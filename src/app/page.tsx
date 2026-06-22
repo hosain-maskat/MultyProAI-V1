@@ -37,9 +37,15 @@ export default function Home() {
               </div>
               <div className="hidden md:flex items-center gap-6 text-sm text-zinc-400">
                 <span className="text-zinc-200 font-medium">Tools</span>
-                <a href="#categories" className="hover:text-white transition-colors">
+                <button 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document.getElementById('categories')?.scrollIntoView({ behavior: 'smooth' });
+                  }} 
+                  className="hover:text-white transition-colors cursor-pointer"
+                >
                   Categories
-                </a>
+                </button>
               </div>
               <button 
                 onClick={() => setIsFeedbackModalOpen(true)}
@@ -172,14 +178,14 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-              <Sparkles className="w-3 h-3 text-white" />
+              <span className="text-white font-bold text-xs">M</span>
             </div>
             <span className="text-sm font-semibold text-zinc-400">
               MultiProAI
             </span>
           </div>
           <p className="text-sm text-zinc-600">
-            © 2025 MultiProAI. All rights reserved.
+            © 2026 MultiProAI. All rights reserved.
           </p>
         </div>
       </footer>

@@ -2,6 +2,9 @@ import { NextRequest } from "next/server";
 import { getTool } from "@/lib/tools";
 import { generateImage as handleImageGeneration } from "@/services/imageGenerator";
 import { handleVideoGeneration } from "@/services/videoGenerator";
+import dns from "dns";
+
+dns.setDefaultResultOrder("ipv4first");
 
 export const maxDuration = 60;
 
@@ -103,10 +106,9 @@ export async function POST(req: NextRequest) {
 
   // Real Gemini API Integration
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return new Response(
-        "GEMINI_API_KEY is not set in environment variables. Please add it to your .env file.",
+        "API Key is missing. Please add it in Settings or set GEMINI_API_KEY in your .env file.",
         { status: 500 }
       );
     }
@@ -171,7 +173,7 @@ export async function POST(req: NextRequest) {
     }));
 
     const responseStream = await ai.models.generateContentStream({
-      model: "gemini-flash-lite-latest",
+      model: "gemini-2.5-flash",
       contents: contents,
       config: {
         systemInstruction: systemMessage,

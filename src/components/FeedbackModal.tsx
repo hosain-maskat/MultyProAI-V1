@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useRef, useEffect } from "react";
 import { MessageSquarePlus, X, UploadCloud, Loader2, Image as ImageIcon, Trash2, History, Send } from "lucide-react";
 

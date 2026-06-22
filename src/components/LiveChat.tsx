@@ -36,6 +36,7 @@ export default function LiveChat({ userApiKey, onClose }: { userApiKey?: string;
   const [voice, setVoice] = useState("Aoede");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [statusText, setStatusText] = useState("Connect to start");
+  const [transcript, setTranscript] = useState("");
 
   const wsRef = useRef<WebSocket | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -47,6 +48,7 @@ export default function LiveChat({ userApiKey, onClose }: { userApiKey?: string;
   const videoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const screenIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
+  const captureCtxRef = useRef<AudioContext | null>(null);
 
   // ---- Audio Playback ----
   const playAudio = useCallback((b64: string) => {
@@ -79,11 +81,24 @@ export default function LiveChat({ userApiKey, onClose }: { userApiKey?: string;
         if (part.inlineData?.mimeType?.startsWith("audio/pcm")) {
           playAudio(part.inlineData.data);
         }
+        if (part.text) {
+          setTranscript((prev) => prev + part.text);
+        }
       }
+    }
+
+    // Handle outputAudioTranscription and inputAudioTranscription fields if they come separately
+    if (msg.serverContent?.outputTranscription?.text) {
+      setTranscript((prev) => prev + msg.serverContent.outputTranscription.text);
+    }
+    if (msg.serverContent?.inputTranscription?.text) {
+      setTranscript((prev) => prev + "\n[You]: " + msg.serverContent.inputTranscription.text + "\n");
     }
 
     if (msg.serverContent?.turnComplete) {
       setStatusText("Connected • Speak now");
+      // Add a newline to separate turns in the transcript
+      setTranscript((prev) => prev + "\n\n");
     }
   }, [playAudio]);
 
@@ -93,6 +108,7 @@ export default function LiveChat({ userApiKey, onClose }: { userApiKey?: string;
       setStatus("connecting");
       setStatusText("Connecting...");
       setErrorMsg(null);
+      setTranscript("");
 
       let apiKey = userApiKey;
       if (!apiKey) {
@@ -109,19 +125,16 @@ export default function LiveChat({ userApiKey, onClose }: { userApiKey?: string;
       }
       if (audioCtxRef.current.state === "suspended") await audioCtxRef.current.resume();
 
-      const ws = new WebSocket(
-        `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`
-      );
+      const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey}`;
+      const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        const systemInstructionText = voice === "Puck" 
-          ? "You are a helpful male AI assistant with a deep male voice. You must sound like a man." 
-          : "You are a helpful female AI assistant with a sweet female voice. You must sound like a woman.";
+        const systemInstructionText = "You are a helpful and intelligent AI assistant. You have access to the user's live camera and screen share via real-time image frames. Whenever the user asks you to look at something, look at the visual input and describe it accurately (e.g., if they show a book, say 'I see a book'). Never say you do not have access to the camera or screen.";
 
         ws.send(JSON.stringify({
           setup: {
-            model: "models/gemini-2.5-flash-native-audio-latest",
+            model: "models/gemini-3.1-flash-live-preview",
             systemInstruction: {
               parts: [{ text: systemInstructionText }]
             },
@@ -130,7 +143,10 @@ export default function LiveChat({ userApiKey, onClose }: { userApiKey?: string;
               speechConfig: {
                 voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } }
               }
-            }
+            },
+            // Enable transcripts without breaking the AUDIO response modality
+            outputAudioTranscription: {},
+            inputAudioTranscription: {}
           }
         }));
         // Don't set ready yet — wait for setupComplete
@@ -172,7 +188,7 @@ export default function LiveChat({ userApiKey, onClose }: { userApiKey?: string;
   const sendAudio = useCallback((b64: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
-        realtimeInput: { mediaChunks: [{ mimeType: "audio/pcm;rate=16000", data: b64 }] }
+        realtimeInput: { audio: { mimeType: "audio/pcm;rate=16000", data: b64 } }
       }));
     }
   }, []);
@@ -182,25 +198,57 @@ export default function LiveChat({ userApiKey, onClose }: { userApiKey?: string;
     if (isMicOn) {
       workletRef.current?.disconnect();
       workletRef.current = null;
+      if (captureCtxRef.current) {
+        if (captureCtxRef.current.state !== "closed") {
+          captureCtxRef.current.close().catch(err => console.error("Error closing captureCtx:", err));
+        }
+        captureCtxRef.current = null;
+      }
       micStreamRef.current?.getTracks().forEach(t => t.stop());
       micStreamRef.current = null;
       setIsMicOn(false);
+      setStatusText("Connected • Speak now");
       return;
     }
 
     if (status !== "ready") return;
 
     try {
-      // Use 16kHz capture for sending
+      // Use device defaults to prevent OverconstrainedError on non-standard setups.
+      // AudioContext will handle resampling to 16kHz automatically.
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true },
+        audio: { echoCancellation: true, noiseSuppression: true },
         video: false
       });
       micStreamRef.current = stream;
 
-      // Create a SEPARATE AudioContext at 16kHz just for capturing
+      // Automatically sync state if the track ends externally
+      const track = stream.getAudioTracks()[0];
+      if (track) {
+        track.onended = () => {
+          workletRef.current?.disconnect();
+          workletRef.current = null;
+          if (captureCtxRef.current) {
+            if (captureCtxRef.current.state !== "closed") {
+              captureCtxRef.current.close().catch(err => console.error("Error closing captureCtx:", err));
+            }
+            captureCtxRef.current = null;
+          }
+          micStreamRef.current = null;
+          setIsMicOn(false);
+          setStatusText("Connected • Speak now");
+        };
+      }
+
+      // Create and persist the AudioContext at 16kHz for capturing
       const captureCtx = new AudioContext({ sampleRate: 16000 });
+      captureCtxRef.current = captureCtx;
       await captureCtx.audioWorklet.addModule("/pcm-processor.js");
+      
+      if (captureCtx.state === "suspended") {
+        await captureCtx.resume();
+      }
+
       const src = captureCtx.createMediaStreamSource(stream);
       const worklet = new AudioWorkletNode(captureCtx, "pcm-processor");
 
@@ -223,12 +271,28 @@ export default function LiveChat({ userApiKey, onClose }: { userApiKey?: string;
     if (!videoEl.videoWidth) return;
     const ctx = canvasRef.current.getContext("2d");
     if (!ctx) return;
-    canvasRef.current.width = Math.min(320, videoEl.videoWidth / 2);
-    canvasRef.current.height = Math.min(240, videoEl.videoHeight / 2);
-    ctx.drawImage(videoEl, 0, 0, canvasRef.current.width, canvasRef.current.height);
-    const b64 = canvasRef.current.toDataURL("image/jpeg", 0.4).split(",")[1];
-    wsRef.current!.send(JSON.stringify({
-      realtimeInput: { mediaChunks: [{ mimeType: "image/jpeg", data: b64 }] }
+
+    // Scale down image for optimal API performance (max 320px)
+    const maxDim = 320;
+    let w = videoEl.videoWidth;
+    let h = videoEl.videoHeight;
+    if (w > maxDim || h > maxDim) {
+      if (w > h) {
+        h = Math.round((h * maxDim) / w);
+        w = maxDim;
+      } else {
+        w = Math.round((w * maxDim) / h);
+        h = maxDim;
+      }
+    }
+
+    canvasRef.current.width = w;
+    canvasRef.current.height = h;
+    ctx.drawImage(videoEl, 0, 0, w, h);
+    
+    const b64 = canvasRef.current.toDataURL("image/jpeg", 0.6).split(",")[1];
+    wsRef.current.send(JSON.stringify({
+      realtimeInput: { video: { mimeType: "image/jpeg", data: b64 } }
     }));
   }, []);
 
@@ -248,9 +312,20 @@ export default function LiveChat({ userApiKey, onClose }: { userApiKey?: string;
         videoRef.current.srcObject = stream; 
         videoRef.current.play().catch(e => console.error("Video play error:", e)); 
       }
+
+      // Automatically sync state if the track ends externally
+      const track = stream.getVideoTracks()[0];
+      if (track) {
+        track.onended = () => {
+          if (videoIntervalRef.current) clearInterval(videoIntervalRef.current);
+          if (videoRef.current) videoRef.current.srcObject = null;
+          setIsVideoOn(false);
+        };
+      }
+
       videoIntervalRef.current = setInterval(() => {
         if (videoRef.current) sendVideoFrame(videoRef.current);
-      }, 1500);
+      }, 2000); // 2 seconds to keep video frames responsive
       setIsVideoOn(true);
     } catch (e: any) {
       setErrorMsg("Camera error: " + e.message);
@@ -273,9 +348,20 @@ export default function LiveChat({ userApiKey, onClose }: { userApiKey?: string;
         screenRef.current.srcObject = stream; 
         screenRef.current.play().catch(e => console.error("Screen play error:", e)); 
       }
+
+      // Automatically sync state if the track ends externally (e.g. Chrome's "Stop sharing" button)
+      const track = stream.getVideoTracks()[0];
+      if (track) {
+        track.onended = () => {
+          if (screenIntervalRef.current) clearInterval(screenIntervalRef.current);
+          if (screenRef.current) screenRef.current.srcObject = null;
+          setIsScreenOn(false);
+        };
+      }
+
       screenIntervalRef.current = setInterval(() => {
         if (screenRef.current) sendVideoFrame(screenRef.current);
-      }, 1500);
+      }, 2000); // 2 seconds to keep screen frames responsive
       setIsScreenOn(true);
     } catch (e: any) {
       setErrorMsg("Screen share error: " + e.message);
@@ -287,6 +373,12 @@ export default function LiveChat({ userApiKey, onClose }: { userApiKey?: string;
     if (closeWs && wsRef.current) { wsRef.current.close(1000); wsRef.current = null; }
     workletRef.current?.disconnect();
     workletRef.current = null;
+    if (captureCtxRef.current) {
+      if (captureCtxRef.current.state !== "closed") {
+        captureCtxRef.current.close().catch(err => console.error("Error closing captureCtx:", err));
+      }
+      captureCtxRef.current = null;
+    }
     micStreamRef.current?.getTracks().forEach(t => t.stop());
     micStreamRef.current = null;
     if (videoIntervalRef.current) clearInterval(videoIntervalRef.current);
@@ -303,6 +395,9 @@ export default function LiveChat({ userApiKey, onClose }: { userApiKey?: string;
     setIsVideoOn(false);
     setIsScreenOn(false);
     nextAudioTime.current = 0;
+    if (closeWs) {
+      setTranscript("");
+    }
   };
 
   const isConnected = status === "ready";
@@ -313,7 +408,7 @@ export default function LiveChat({ userApiKey, onClose }: { userApiKey?: string;
       <div className="flex items-center justify-between border-b border-zinc-800 pb-3 mb-3">
         <div className="flex items-center gap-2">
           <Radio className={`w-4 h-4 ${status === "ready" ? "text-green-400 animate-pulse" : status === "connecting" ? "text-yellow-400 animate-pulse" : "text-zinc-500"}`} />
-          <span className="text-white font-semibold text-sm">Gemini Live Voice</span>
+          <span className="text-white font-semibold text-sm">Live Communication</span>
         </div>
         <div className="flex items-center gap-2">
           {status === "idle" || status === "error" ? (
@@ -347,14 +442,20 @@ export default function LiveChat({ userApiKey, onClose }: { userApiKey?: string;
       {/* Voice Selection (only when idle) */}
       {(status === "idle" || status === "error") && (
         <div className="flex gap-4 justify-center py-2">
-          <label className="text-sm text-zinc-400 flex items-center gap-2 cursor-pointer">
-            <input type="radio" name="voice" checked={voice === "Aoede"} onChange={() => setVoice("Aoede")} className="accent-purple-500" />
-            Female (Aoede)
-          </label>
-          <label className="text-sm text-zinc-400 flex items-center gap-2 cursor-pointer">
-            <input type="radio" name="voice" checked={voice === "Puck"} onChange={() => setVoice("Puck")} className="accent-purple-500" />
-            Male (Puck)
-          </label>
+          <button 
+            onClick={() => setVoice("Aoede")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all border ${voice === "Aoede" ? "bg-purple-500/20 border-purple-500 text-purple-300" : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:bg-zinc-800"}`}
+          >
+            <div className={`w-3 h-3 rounded-full ${voice === "Aoede" ? "bg-purple-500" : "bg-zinc-600"}`}></div>
+            Female
+          </button>
+          <button 
+            onClick={() => setVoice("Puck")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all border ${voice === "Puck" ? "bg-blue-500/20 border-blue-500 text-blue-300" : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:bg-zinc-800"}`}
+          >
+            <div className={`w-3 h-3 rounded-full ${voice === "Puck" ? "bg-blue-500" : "bg-zinc-600"}`}></div>
+            Male
+          </button>
         </div>
       )}
 
@@ -385,6 +486,14 @@ export default function LiveChat({ userApiKey, onClose }: { userApiKey?: string;
             {isScreenOn ? <Monitor className="w-5 h-5" /> : <MonitorOff className="w-5 h-5" />}
             <span className="text-xs">{isScreenOn ? "Screen On" : "Screen"}</span>
           </button>
+        </div>
+      )}
+
+      {/* Transcript */}
+      {transcript && (
+        <div className="mt-3 p-3 bg-zinc-800/50 border border-zinc-700/50 rounded-xl text-sm text-zinc-300 max-h-32 overflow-y-auto custom-scrollbar whitespace-pre-wrap">
+          <div className="text-xs text-purple-400 font-medium mb-1">Live Subtitles:</div>
+          {transcript}
         </div>
       )}
 
