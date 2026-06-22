@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import ytSearch from "yt-search";
-import { timeout } from "promise-timeout";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -8,8 +7,11 @@ export async function GET(req: NextRequest) {
   const download = searchParams.get("download") === "true";
   
   try {
-    // Add a 5 second timeout to ytSearch to prevent Vercel crashes
-    const r = await timeout(ytSearch(q), 5000);
+    // Native 5-second timeout to prevent Vercel crashes
+    const r = await Promise.race([
+      ytSearch(q),
+      new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Timeout")), 5000))
+    ]);
     const videos = r.videos;
     
     if (videos && videos.length > 0) {

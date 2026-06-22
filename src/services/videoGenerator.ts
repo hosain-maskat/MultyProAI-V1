@@ -1,7 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
-
-export async function handleVideoGeneration(lastUserMessage: string, apiKey: string): Promise<string> {
-  const genAI = new GoogleGenAI({ apiKey });
+export async function handleVideoGeneration(lastUserMessage: string, _apiKey: string): Promise<string> {
   const cleanQuery = lastUserMessage.replace(/^search /i, "").trim();
   
   try {
