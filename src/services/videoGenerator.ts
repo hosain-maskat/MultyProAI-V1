@@ -51,7 +51,7 @@ export async function handleVideoGeneration(lastUserMessage: string, apiKey: str
       return `# ⚠️ Hugging Face Token Missing\n\nTo use the AI Video Generator globally, you need to add your free Hugging Face API token to Vercel.\n\n**How to fix this:**\n1. Go to [Hugging Face Tokens](https://huggingface.co/settings/tokens) and create a free Access Token (Read).\n2. Go to your Vercel Project > Settings > Environment Variables.\n3. Add a new variable: Key = \`HF_TOKEN\`, Value = \`your_token_here\`.\n4. Click **Redeploy** on Vercel.\n\n*The video generator will work perfectly once this is added!*`;
     }
 
-    const hfResponse = await fetch(
+    let hfResponse = await fetch(
       "https://api-inference.huggingface.co/models/damo-vilab/text-to-video-ms-1.7b",
       {
         headers: {
@@ -62,6 +62,23 @@ export async function handleVideoGeneration(lastUserMessage: string, apiKey: str
         body: JSON.stringify({ inputs: enhancedPrompt }),
       }
     );
+
+    // If model is loading (503), wait 20 seconds and retry once
+    if (hfResponse.status === 503) {
+      console.log("HF Model is loading, waiting 20s before retry...");
+      await new Promise(resolve => setTimeout(resolve, 20000));
+      hfResponse = await fetch(
+        "https://api-inference.huggingface.co/models/damo-vilab/text-to-video-ms-1.7b",
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${process.env.HF_TOKEN}`
+          },
+          method: "POST",
+          body: JSON.stringify({ inputs: enhancedPrompt }),
+        }
+      );
+    }
 
     if (hfResponse.ok) {
       const blob = await hfResponse.blob();
