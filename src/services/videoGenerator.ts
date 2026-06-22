@@ -53,5 +53,5 @@ export async function handleVideoGeneration(lastUserMessage: string, apiKey: str
   
   const proxyUrl = `/api/proxy-video?prompt=${encodeURIComponent(enhancedPrompt)}`;
   
-  return `# 🎥 AI Video Generation Started\n\nYour AI video is being generated based on your prompt. It may take 15-30 seconds to load.\n\n<video controls style="width: 100%; border-radius: 10px; margin-top: 10px;" poster="https://i.imgur.com/3V2Xb3f.gif">\n  <source src="${proxyUrl}" type="video/mp4">\n  Your browser does not support the video tag.\n</video>\n\n[📥 Download AI Video](${proxyUrl}&download=true)\n\n*Note: Generated using Hugging Face Text-to-Video API.*`;
+  return `# 🎥 AI Video Generation Started\n\nYour AI video is being generated based on your prompt. It may take 30-60 seconds to load depending on Hugging Face servers.\n\n<video controls style="width: 100%; border-radius: 10px; margin-top: 10px;" preload="none">\n  <source src="${proxyUrl}" type="video/mp4">\n  Your browser does not support the video tag.\n</video>\n\n[📥 Download AI Video Directly](${proxyUrl})\n\n*Note: Generated using Hugging Face Text-to-Video API. If the video doesn't play after 60 seconds, click the download link.*`;
 }
