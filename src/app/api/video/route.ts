@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q") || "nature";
@@ -7,8 +9,8 @@ export async function GET(req: NextRequest) {
   
   try {
     // We use DuckDuckGo HTML search to find the YouTube video. 
-    // This is much more stable on Vercel than yt-search which crashes the server.
-    const searchUrl = `https://html.duckduckgo.com/html/?q=site:youtube.com+${encodeURIComponent(q)}`;
+    // Using 'youtube' instead of 'site:youtube.com' allows DuckDuckGo to auto-correct typos (e.g. 'imotional')
+    const searchUrl = `https://html.duckduckgo.com/html/?q=youtube+${encodeURIComponent(q)}`;
     const response = await fetch(searchUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
