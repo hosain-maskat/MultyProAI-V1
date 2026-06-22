@@ -44,6 +44,7 @@ export async function handleVideoGeneration(lastUserMessage: string, apiKey: str
 
   if (isRealVideo) {
     return `# 🎥 Video Result (YouTube)\n\nHere is the video you requested:\n\n<iframe class="w-full h-64 sm:h-96 rounded-xl mt-3 shadow-lg" src="/api/video?q=${encodedYoutubeQuery}" frameborder="0" allowfullscreen></iframe>\n\n[📥 Download Video](/api/video?q=${encodedYoutubeQuery}&download=true)\n\n*Note: This is a real video fetched directly from YouTube based on your prompt.*`;
+  }
   // Step 2: Search Pixabay for high-quality stock videos matching the prompt
   try {
     const pixabayKey = process.env.PIXABAY_API_KEY || "56371408-83a054f4eefa49d4910b99fd6";
