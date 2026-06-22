@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import ytSearch from "yt-search";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -7,30 +6,37 @@ export async function GET(req: NextRequest) {
   const download = searchParams.get("download") === "true";
   
   try {
-    // Native 5-second timeout to prevent Vercel crashes
-    const r = await Promise.race([
-      ytSearch(q),
-      new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Timeout")), 5000))
-    ]);
-    const videos = r.videos;
+    // We use DuckDuckGo HTML search to find the YouTube video. 
+    // This is much more stable on Vercel than yt-search which crashes the server.
+    const searchUrl = `https://html.duckduckgo.com/html/?q=site:youtube.com+${encodeURIComponent(q)}`;
+    const response = await fetch(searchUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      }
+    });
     
-    if (videos && videos.length > 0) {
-      const video = videos[0];
-      const videoId = video.videoId;
+    if (!response.ok) {
+      throw new Error("Search failed");
+    }
+    
+    const html = await response.text();
+    // Extract the first YouTube video ID from the search results
+    const match = html.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
+    
+    if (match && match[1]) {
+      const videoId = match[1];
       
       if (download) {
-        // Redirecting to ssyoutube.com for an easier 1-click download experience.
         return NextResponse.redirect(`https://ssyoutube.com/watch?v=${videoId}`);
       } else {
-        // Return the YouTube embed URL
         return NextResponse.redirect(`https://www.youtube.com/embed/${videoId}?autoplay=0&controls=1&rel=0`);
       }
     } else {
+      // Fallback if no video found
       return NextResponse.redirect("https://www.youtube.com/embed/dQw4w9WgXcQ");
     }
   } catch (error) {
-    console.error("YouTube API Error:", error);
-    // If it fails or times out, fallback to a placeholder so the iframe doesn't crash
+    console.error("Video API Error:", error);
     if (download) {
       return NextResponse.redirect(`https://ssyoutube.com/watch?v=dQw4w9WgXcQ`);
     }
