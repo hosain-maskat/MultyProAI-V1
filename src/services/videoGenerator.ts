@@ -58,7 +58,7 @@ export async function handleVideoGeneration(lastUserMessage: string, apiKey: str
       {
         headers: {
           "Content-Type": "application/json",
-          // "Authorization": "Bearer YOUR_HF_TOKEN" // Intentionally omitted to test free tier or fallback
+          ...(process.env.HF_TOKEN && { "Authorization": `Bearer ${process.env.HF_TOKEN}` })
         },
         method: "POST",
         body: JSON.stringify({ inputs: enhancedPrompt }),
