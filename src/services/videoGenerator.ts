@@ -44,14 +44,33 @@ export async function handleVideoGeneration(lastUserMessage: string, apiKey: str
 
   if (isRealVideo) {
     return `# 🎥 Video Result (YouTube)\n\nHere is the video you requested:\n\n<iframe width="100%" height="400" src="/api/video?q=${encodedYoutubeQuery}" frameborder="0" style="border-radius:10px; margin-top:10px;" allowfullscreen></iframe>\n\n[📥 Download Video](/api/video?q=${encodedYoutubeQuery}&download=true)\n\n*Note: This is a real video fetched directly from YouTube based on your prompt.*`;
-  }
-
   // Step 2: Attempt Hugging Face Video Generation
-  // Instead of fetching the 5MB video buffer here and crashing Vercel (4.5MB limit),
-  // we return a markdown video tag that points to our Edge proxy route.
-  // The Edge route will stream the video directly to the client.
-  
-  const proxyUrl = `/api/proxy-video?prompt=${encodeURIComponent(enhancedPrompt)}`;
-  
-  return `# 🎥 AI Video Generation Started\n\nYour AI video is being generated based on your prompt. It may take 30-60 seconds to load depending on Hugging Face servers.\n\n<video controls style="width: 100%; border-radius: 10px; margin-top: 10px;" preload="none">\n  <source src="${proxyUrl}" type="video/mp4">\n  Your browser does not support the video tag.\n</video>\n\n[📥 Download AI Video Directly](${proxyUrl})\n\n*Note: Generated using Hugging Face Text-to-Video API. If the video doesn't play after 60 seconds, click the download link.*`;
+  try {
+    const hfResponse = await fetch(
+      "https://api-inference.huggingface.co/models/damo-vilab/text-to-video-ms-1.7b",
+      {
+        headers: {
+          "Content-Type": "application/json",
+          ...(process.env.HF_TOKEN && { "Authorization": `Bearer ${process.env.HF_TOKEN}` })
+        },
+        method: "POST",
+        body: JSON.stringify({ inputs: enhancedPrompt }),
+      }
+    );
+
+    if (hfResponse.ok) {
+      const blob = await hfResponse.blob();
+      const buffer = Buffer.from(await blob.arrayBuffer());
+      const base64Video = buffer.toString('base64');
+      
+      return `# 🎥 Your AI Video is Ready!\n\nHere is the stunning AI-generated video created specifically for your prompt:\n\n<video controls style="width: 100%; border-radius: 10px; margin-top: 10px;">\n  <source src="data:video/mp4;base64,${base64Video}" type="video/mp4">\n</video>\n\nWow, this looks amazing! I hope you like it. You can click the three dots on the player to download it.`;
+    } else {
+      throw new Error("Hugging Face API returned error: " + hfResponse.status);
+    }
+  } catch (error) {
+    console.error("Hugging Face Video Generation Failed, falling back to YouTube:", error);
+    
+    // Step 3: Fallback to YouTube
+    return `# 🎥 Video Result (AI Fallback)\n\n> [!WARNING]\n> **AI Video Generation Failed:** The Hugging Face server is currently overloaded or out of free quota. Falling back to the closest matching YouTube video.\n\nHere is the best matching video found for: "${enhancedPrompt}"\n\n<iframe width="100%" height="400" src="/api/video?q=${encodedYoutubeQuery}" frameborder="0" style="border-radius:10px; margin-top:10px;" allowfullscreen></iframe>\n\n[📥 Download Video](/api/video?q=${encodedYoutubeQuery}&download=true)\n\n*Note: Fallback successful. Video sourced from YouTube.*`;
+  }
 }
