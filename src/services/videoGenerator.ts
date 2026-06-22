@@ -43,7 +43,8 @@ export async function handleVideoGeneration(lastUserMessage: string, apiKey: str
   const encodedYoutubeQuery = encodeURIComponent(youtubeSearchQuery);
 
   if (isRealVideo) {
-    return `# 🎥 Video Result (YouTube)\n\nHere is the video you requested:\n\n<iframe width="100%" height="400" src="/api/video?q=${encodedYoutubeQuery}" frameborder="0" style="border-radius:10px; margin-top:10px;" allowfullscreen></iframe>\n\n[📥 Download Video](/api/video?q=${encodedYoutubeQuery}&download=true)\n\n*Note: This is a real video fetched directly from YouTube based on your prompt.*`;
+    return `# 🎥 Video Result (YouTube)\n\nHere is the video you requested:\n\n<iframe class="w-full h-64 sm:h-96 rounded-xl mt-3 shadow-lg" src="/api/video?q=${encodedYoutubeQuery}" frameborder="0" allowfullscreen></iframe>\n\n[📥 Download Video](/api/video?q=${encodedYoutubeQuery}&download=true)\n\n*Note: This is a real video fetched directly from YouTube based on your prompt.*`;
+  }
   // Step 2: Attempt Hugging Face Video Generation
   try {
     const hfResponse = await fetch(
@@ -63,7 +64,7 @@ export async function handleVideoGeneration(lastUserMessage: string, apiKey: str
       const buffer = Buffer.from(await blob.arrayBuffer());
       const base64Video = buffer.toString('base64');
       
-      return `# 🎥 Your AI Video is Ready!\n\nHere is the stunning AI-generated video created specifically for your prompt:\n\n<video controls style="width: 100%; border-radius: 10px; margin-top: 10px;">\n  <source src="data:video/mp4;base64,${base64Video}" type="video/mp4">\n</video>\n\nWow, this looks amazing! I hope you like it. You can click the three dots on the player to download it.`;
+      return `# 🎥 Your AI Video is Ready!\n\nHere is the stunning AI-generated video created specifically for your prompt:\n\n<video controls class="w-full rounded-xl mt-3 shadow-lg">\n  <source src="data:video/mp4;base64,${base64Video}" type="video/mp4">\n</video>\n\nWow, this looks amazing! I hope you like it. You can click the three dots on the player to download it.`;
     } else {
       throw new Error("Hugging Face API returned error: " + hfResponse.status);
     }
@@ -71,6 +72,6 @@ export async function handleVideoGeneration(lastUserMessage: string, apiKey: str
     console.error("Hugging Face Video Generation Failed, falling back to YouTube:", error);
     
     // Step 3: Fallback to YouTube
-    return `# 🎥 Video Result (AI Fallback)\n\n> [!WARNING]\n> **AI Video Generation Failed:** The Hugging Face server is currently overloaded or out of free quota. Falling back to the closest matching YouTube video.\n\nHere is the best matching video found for: "${enhancedPrompt}"\n\n<iframe width="100%" height="400" src="/api/video?q=${encodedYoutubeQuery}" frameborder="0" style="border-radius:10px; margin-top:10px;" allowfullscreen></iframe>\n\n[📥 Download Video](/api/video?q=${encodedYoutubeQuery}&download=true)\n\n*Note: Fallback successful. Video sourced from YouTube.*`;
+    return `# 🎥 Video Result (AI Fallback)\n\n> [!WARNING]\n> **AI Video Generation Failed:** The Hugging Face server is currently overloaded or out of free quota. Falling back to the closest matching YouTube video.\n\nHere is the best matching video found for: "${enhancedPrompt}"\n\n<iframe class="w-full h-64 sm:h-96 rounded-xl mt-3 shadow-lg" src="/api/video?q=${encodedYoutubeQuery}" frameborder="0" allowfullscreen></iframe>\n\n[📥 Download Video](/api/video?q=${encodedYoutubeQuery}&download=true)\n\n*Note: Fallback successful. Video sourced from YouTube.*`;
   }
 }
