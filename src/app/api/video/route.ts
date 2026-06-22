@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import ytSearch from "youtube-search-api";
 
 export const dynamic = "force-dynamic";
 
@@ -8,35 +9,25 @@ export async function GET(req: NextRequest) {
   const download = searchParams.get("download") === "true";
   
   try {
-    // We use DuckDuckGo HTML search to find the YouTube video. 
-    // Using 'youtube' instead of 'site:youtube.com' allows DuckDuckGo to auto-correct typos (e.g. 'imotional')
-    const searchUrl = `https://html.duckduckgo.com/html/?q=youtube+${encodeURIComponent(q)}`;
-    const response = await fetch(searchUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-      }
-    });
+    // Use youtube-search-api to get exact YouTube results, handling typos natively.
+    const result = await ytSearch.GetListByKeyword(q, false, 1);
     
-    if (!response.ok) {
-      throw new Error("Search failed");
-    }
-    
-    const html = await response.text();
-    // Extract the first YouTube video ID from the search results
-    const match = html.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
-    
-    if (match && match[1]) {
-      const videoId = match[1];
+    if (result && result.items && result.items.length > 0) {
+      // Filter to ensure we only get videos, not channels or playlists
+      const video = result.items.find((item: any) => item.type === "video") || result.items[0];
+      const videoId = video.id;
       
-      if (download) {
-        return NextResponse.redirect(`https://ssyoutube.com/watch?v=${videoId}`);
-      } else {
-        return NextResponse.redirect(`https://www.youtube.com/embed/${videoId}?autoplay=0&controls=1&rel=0`);
+      if (videoId) {
+        if (download) {
+          return NextResponse.redirect(`https://ssyoutube.com/watch?v=${videoId}`);
+        } else {
+          return NextResponse.redirect(`https://www.youtube.com/embed/${videoId}?autoplay=0&controls=1&rel=0`);
+        }
       }
-    } else {
-      // Fallback if no video found
-      return NextResponse.redirect("https://www.youtube.com/embed/dQw4w9WgXcQ");
     }
+    
+    // Fallback if no video found
+    return NextResponse.redirect("https://www.youtube.com/embed/dQw4w9WgXcQ");
   } catch (error) {
     console.error("Video API Error:", error);
     if (download) {
