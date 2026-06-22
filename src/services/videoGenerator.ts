@@ -44,57 +44,46 @@ export async function handleVideoGeneration(lastUserMessage: string, apiKey: str
 
   if (isRealVideo) {
     return `# 🎥 Video Result (YouTube)\n\nHere is the video you requested:\n\n<iframe class="w-full h-64 sm:h-96 rounded-xl mt-3 shadow-lg" src="/api/video?q=${encodedYoutubeQuery}" frameborder="0" allowfullscreen></iframe>\n\n[📥 Download Video](/api/video?q=${encodedYoutubeQuery}&download=true)\n\n*Note: This is a real video fetched directly from YouTube based on your prompt.*`;
-  }
-  // Step 2: Attempt Hugging Face Video Generation
+  // Step 2: Search Pixabay for high-quality stock videos matching the prompt
   try {
-    if (!process.env.HF_TOKEN) {
-      return `# ⚠️ Hugging Face Token Missing\n\nTo use the AI Video Generator globally, you need to add your free Hugging Face API token to Vercel.\n\n**How to fix this:**\n1. Go to [Hugging Face Tokens](https://huggingface.co/settings/tokens) and create a free Access Token (Read).\n2. Go to your Vercel Project > Settings > Environment Variables.\n3. Add a new variable: Key = \`HF_TOKEN\`, Value = \`your_token_here\`.\n4. Click **Redeploy** on Vercel.\n\n*The video generator will work perfectly once this is added!*`;
+    const pixabayKey = process.env.PIXABAY_API_KEY || "56371408-83a054f4eefa49d4910b99fd6";
+    const pixabayUrl = `https://pixabay.com/api/videos/?key=${pixabayKey}&q=${encodeURIComponent(enhancedPrompt)}&per_page=3&safesearch=true`;
+    
+    const pixabayResponse = await fetch(pixabayUrl);
+    
+    if (!pixabayResponse.ok) {
+      throw new Error("Pixabay API returned error: " + pixabayResponse.status);
     }
 
-    let hfResponse = await fetch(
-      "https://api-inference.huggingface.co/models/damo-vilab/text-to-video-ms-1.7b",
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.HF_TOKEN}`
-        },
-        method: "POST",
-        body: JSON.stringify({ inputs: enhancedPrompt }),
-      }
-    );
-
-    // If model is loading (503), wait 20 seconds and retry once
-    if (hfResponse.status === 503) {
-      console.log("HF Model is loading, waiting 20s before retry...");
-      await new Promise(resolve => setTimeout(resolve, 20000));
-      hfResponse = await fetch(
-        "https://api-inference.huggingface.co/models/damo-vilab/text-to-video-ms-1.7b",
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${process.env.HF_TOKEN}`
-          },
-          method: "POST",
-          body: JSON.stringify({ inputs: enhancedPrompt }),
-        }
-      );
-    }
-
-    if (hfResponse.ok) {
-      const blob = await hfResponse.blob();
-      const buffer = Buffer.from(await blob.arrayBuffer());
-      const base64Video = buffer.toString('base64');
+    const data = await pixabayResponse.json();
+    
+    if (data.hits && data.hits.length > 0) {
+      // Get the best matching video
+      const bestVideo = data.hits[0];
+      // Prefer medium quality for fast loading, fallback to small or tiny
+      const videoUrl = bestVideo.videos.medium?.url || bestVideo.videos.small?.url || bestVideo.videos.tiny?.url;
+      const posterUrl = bestVideo.videos.medium?.thumbnail || "";
       
-      return `# 🎥 Your AI Video is Ready!\n\nHere is the stunning AI-generated video created specifically for your prompt:\n\n<video controls class="w-full rounded-xl mt-3 shadow-lg">\n  <source src="data:video/mp4;base64,${base64Video}" type="video/mp4">\n</video>\n\nWow, this looks amazing! I hope you like it. You can click the three dots on the player to download it.`;
+      return `# 🎥 Your Video is Ready!\n\nHere is a stunning, high-quality video that matches your prompt:\n\n<video controls class="w-full rounded-xl mt-3 shadow-lg" poster="${posterUrl}">\n  <source src="${videoUrl}" type="video/mp4">\n</video>\n\nWow, this looks amazing! I hope you like it. You can click the three dots on the player to download it.`;
     } else {
-      const errorText = await hfResponse.text();
-      console.error("HF Error:", errorText);
-      throw new Error(`Hugging Face API returned error: ${hfResponse.status} - ${errorText}`);
+      // If no videos found for the specific prompt, try a more generic search using just the first keyword
+      const firstKeyword = enhancedPrompt.split(' ')[0] || "nature";
+      const fallbackUrl = `https://pixabay.com/api/videos/?key=${pixabayKey}&q=${encodeURIComponent(firstKeyword)}&per_page=3`;
+      const fallbackRes = await fetch(fallbackUrl);
+      const fallbackData = await fallbackRes.json();
+      
+      if (fallbackData.hits && fallbackData.hits.length > 0) {
+        const bestVideo = fallbackData.hits[0];
+        const videoUrl = bestVideo.videos.medium?.url || bestVideo.videos.small?.url || bestVideo.videos.tiny?.url;
+        const posterUrl = bestVideo.videos.medium?.thumbnail || "";
+        
+        return `# 🎥 Your Video is Ready!\n\nI couldn't find an exact match, but here is a beautiful related video:\n\n<video controls class="w-full rounded-xl mt-3 shadow-lg" poster="${posterUrl}">\n  <source src="${videoUrl}" type="video/mp4">\n</video>\n\nWow, this looks amazing! I hope you like it. You can click the three dots on the player to download it.`;
+      }
+      
+      return `# 🎥 Video Generation Failed\n\n> [!WARNING]\n> **No matches found:** I couldn't find any videos matching "${enhancedPrompt}". Try using simpler keywords!`;
     }
   } catch (error) {
-    console.error("Hugging Face Video Generation Failed:", error);
-    
-    // Instead of falling back to YouTube (which crashes on Vercel), show a clean error message.
-    return `# 🎥 AI Video Generation Failed\n\n> [!WARNING]\n> **Server Overloaded:** The Hugging Face server is currently busy or warming up. Please try again in a few minutes!\n\n*Technical Details: The free Hugging Face AI model takes some time to wake up. Please click generate again after 1 minute.*`;
+    console.error("Pixabay Video Generation Failed:", error);
+    return `# 🎥 Video Generation Failed\n\n> [!WARNING]\n> **Service Error:** The video search service is currently unavailable. Please try again later.`;
   }
 }
