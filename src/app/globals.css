@@ -182,3 +182,107 @@
 .typing-dot:nth-child(3) {
   animation-delay: 0.4s;
 }
+
+/* PDF Printing Media Queries */
+@media print {
+  body {
+    background-color: white !important;
+    color: black !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  #main-chat-layout {
+    display: none !important;
+  }
+  
+  #print-area {
+    display: block !important;
+    background-color: white !important;
+    color: black !important;
+    padding: 30px !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+  
+  #print-area * {
+    color: black !important;
+    background: transparent !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+  
+  #print-area h1 {
+    font-size: 22pt !important;
+    font-weight: bold !important;
+    margin-top: 18pt !important;
+    margin-bottom: 10pt !important;
+    border-bottom: 2px solid #e4e4e7 !important;
+    padding-bottom: 5pt !important;
+  }
+  
+  #print-area h2 {
+    font-size: 16pt !important;
+    font-weight: bold !important;
+    margin-top: 14pt !important;
+    margin-bottom: 6pt !important;
+  }
+  
+  #print-area h3 {
+    font-size: 13pt !important;
+    font-weight: bold !important;
+    margin-top: 10pt !important;
+    margin-bottom: 4pt !important;
+  }
+  
+  #print-area p, #print-area li {
+    font-size: 10.5pt !important;
+    line-height: 1.5 !important;
+    margin-bottom: 6pt !important;
+  }
+  
+  #print-area pre {
+    background-color: #f4f4f5 !important;
+    border: 1px solid #e4e4e7 !important;
+    border-radius: 6px !important;
+    padding: 8pt !important;
+    margin: 8pt 0 !important;
+    white-space: pre-wrap !important;
+    word-break: break-all !important;
+  }
+  
+  #print-area code {
+    font-family: monospace !important;
+    font-size: 9pt !important;
+    background-color: #f4f4f5 !important;
+    padding: 1px 3px !important;
+    border-radius: 3px !important;
+  }
+  
+  #print-area table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 10pt 0 !important;
+  }
+  
+  #print-area th, #print-area td {
+    border: 1px solid #e4e4e7 !important;
+    padding: 5pt 7pt !important;
+    text-align: left !important;
+  }
+  
+  #print-area th {
+    background-color: #f4f4f5 !important;
+    font-weight: bold !important;
+  }
+  
+  #print-area blockquote {
+    border-left: 3px solid #7c3aed !important;
+    padding-left: 8pt !important;
+    margin: 8pt 0 !important;
+    color: #52525b !important;
+    font-style: italic !important;
+  }
+}
+

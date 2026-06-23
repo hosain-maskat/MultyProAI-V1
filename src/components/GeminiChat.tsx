@@ -77,6 +77,7 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editInput, setEditInput] = useState("");
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+  const [printContent, setPrintContent] = useState("");
   
   // Chat History
   const [chatHistory, setChatHistory] = useState<ChatSession[]>([]);
@@ -537,13 +538,13 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
           
           if (response.ok) break; // Success!
           
-          if (response.status === 429) {
-            // Don't retry quota errors
+          if (response.status === 429 || response.status === 400 || response.status === 401 || response.status === 403) {
+            // Client errors or quota errors, don't retry
             break;
           }
           
-          if (response.status === 504 && retries > 0) {
-            // Vercel cold-start timeout, wait a bit and retry
+          if (response.status >= 500 && retries > 0) {
+            // Vercel cold-start timeout or server error, wait a bit and retry
             await new Promise(r => setTimeout(r, 1500));
             retries--;
             continue;
@@ -565,8 +566,13 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
         let errorMsg = lastError?.message || "Failed to get response (Server timeout or error)";
         if (response) {
           try {
-            const errorData = await response.json();
-            errorMsg = errorData.error || errorMsg;
+            const textContent = await response.text();
+            try {
+              const errorData = JSON.parse(textContent);
+              errorMsg = errorData.error || textContent || errorMsg;
+            } catch {
+              errorMsg = textContent || errorMsg;
+            }
           } catch(e) {}
         }
         throw new Error(errorMsg);
@@ -691,13 +697,13 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
           
           if (response.ok) break; // Success!
           
-          if (response.status === 429) {
-            // Don't retry quota errors
+          if (response.status === 429 || response.status === 400 || response.status === 401 || response.status === 403) {
+            // Client errors or quota errors, don't retry
             break;
           }
           
-          if (response.status === 504 && retries > 0) {
-            // Vercel cold-start timeout, wait a bit and retry
+          if (response.status >= 500 && retries > 0) {
+            // Vercel cold-start timeout or server error, wait a bit and retry
             await new Promise(r => setTimeout(r, 1500));
             retries--;
             continue;
@@ -719,8 +725,13 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
         let errorMsg = lastError?.message || "Failed to get response (Server timeout or error)";
         if (response) {
           try {
-            const errorData = await response.json();
-            errorMsg = errorData.error || errorMsg;
+            const textContent = await response.text();
+            try {
+              const errorData = JSON.parse(textContent);
+              errorMsg = errorData.error || textContent || errorMsg;
+            } catch {
+              errorMsg = textContent || errorMsg;
+            }
           } catch(e) {}
         }
         throw new Error(errorMsg);
@@ -828,52 +839,23 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
     if (!element) return;
     
     try {
-      // Dynamically import html2pdf for client-side rendering
-      const html2pdf = (await import('html2pdf.js')).default;
-      
       // Clone element to prevent styling issues on the actual chat
       const clone = element.cloneNode(true) as HTMLElement;
       
-      // Remove video/audio elements that might break PDF generation
-      const mediaTags = clone.querySelectorAll('video, audio, iframe');
+      // Remove video/audio/iframe/button elements that might break PDF generation
+      const mediaTags = clone.querySelectorAll('video, audio, iframe, button, .no-print');
       mediaTags.forEach(tag => tag.remove());
       
-      // Wrap it in a clean white container for PDF
-      const wrapper = document.createElement('div');
-      wrapper.style.padding = '20px';
-      wrapper.style.backgroundColor = '#ffffff';
-      wrapper.style.color = '#000000';
-      wrapper.style.width = '800px'; // Give it a fixed width for consistent rendering
-      wrapper.appendChild(clone);
+      setPrintContent(clone.innerHTML);
       
-      // CRITICAL: Append to document body so html2canvas can read computed styles
-      wrapper.style.position = 'absolute';
-      wrapper.style.left = '-9999px';
-      wrapper.style.top = '-9999px';
-      document.body.appendChild(wrapper);
-      
-      // Force black text inside the clone to ensure readability
-      const allTextElements = clone.querySelectorAll('p, span, h1, h2, h3, h4, h5, h6, li, td, th');
-      allTextElements.forEach((el: any) => {
-        el.style.color = '#000000';
-      });
-
-      const opt: any = {
-        margin:       10,
-        filename:     filename,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, logging: false },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-      
-      // html2pdf returns a promise
-      await html2pdf().set(opt).from(wrapper).save();
-      
-      // Clean up
-      document.body.removeChild(wrapper);
+      // Allow React to render the printContent DOM, then trigger print
+      setTimeout(() => {
+        window.print();
+        setPrintContent("");
+      }, 150);
     } catch (err) {
-      console.error("PDF generation failed:", err);
-      alert("Failed to generate PDF. Please try again.");
+      console.error("PDF printing failed:", err);
+      alert("Failed to print PDF. Please try again.");
     }
   };
 
@@ -907,7 +889,8 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
   };
 
   return (
-    <div className="flex h-full w-full bg-zinc-950 overflow-hidden relative">
+    <>
+      <div id="main-chat-layout" className="flex h-full w-full bg-zinc-950 overflow-hidden relative">
       
       {/* Sidebar Overlay (Mobile) */}
       {isSidebarOpen && (
@@ -1507,6 +1490,12 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
         </div>
         </div>
       </div>
-    </div>
+      </div>
+      {printContent && (
+        <div id="print-area" className="hidden print:block bg-white text-black p-8">
+          <div dangerouslySetInnerHTML={{ __html: printContent }} />
+        </div>
+      )}
+    </>
   );
 }
