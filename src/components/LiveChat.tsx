@@ -433,9 +433,28 @@ export default function LiveChat({ userApiKey, onClose }: { userApiKey?: string;
 
       {/* Error */}
       {errorMsg && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs px-3 py-2 rounded-lg mb-3">
-          {errorMsg}
-          <div className="mt-1 text-zinc-500">If quota exceeded, add your API Key via Settings ⚙️</div>
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs px-3 py-3 rounded-lg mb-3">
+          <div className="font-bold mb-1 text-sm">⚠️ Connection Failed</div>
+          <div className="mb-2 text-zinc-300">{errorMsg}</div>
+          
+          <div className="mt-3 pt-3 border-t border-red-500/20">
+            <div className="font-semibold text-zinc-200 mb-1">Has the default limit run out?</div>
+            <div className="text-zinc-400 mb-2 leading-relaxed">
+              Our free public API limit might be exhausted. Don't worry! You can easily get your own 100% FREE API key and add it from the <strong>Settings ⚙️</strong> menu to continue using the Live AI.
+            </div>
+            
+            <div className="mt-2 text-zinc-400 font-medium mb-2">Watch how to get a free API Key:</div>
+            <div className="rounded-lg overflow-hidden border border-zinc-700 bg-black">
+              <iframe 
+                className="w-full h-40" 
+                src="https://www.youtube.com/embed/Uyn-P2nRvDA?rel=0" 
+                title="How to get Gemini API Key" 
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowFullScreen>
+              </iframe>
+            </div>
+          </div>
         </div>
       )}
 
