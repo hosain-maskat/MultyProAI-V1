@@ -412,16 +412,43 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
         setSpeakingMessageId(null);
       };
 
+      // In some browsers (like Chrome Android), voices take time to load.
+      // If it's empty, speech might still work with defaults.
       const voices = window.speechSynthesis.getVoices();
+      
       let selectedVoice;
       if (gender === "female") {
-        selectedVoice = voices.find(v => v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("zira"));
+        selectedVoice = voices.find(v => v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("zira") || v.name.toLowerCase().includes("samantha") || v.name.toLowerCase().includes("victoria"));
       } else {
-        selectedVoice = voices.find(v => v.name.toLowerCase().includes("male") || v.name.toLowerCase().includes("david"));
+        selectedVoice = voices.find(v => v.name.toLowerCase().includes("male") || v.name.toLowerCase().includes("david") || v.name.toLowerCase().includes("daniel") || v.name.toLowerCase().includes("mark"));
       }
+      
       if (selectedVoice) {
         utterance.voice = selectedVoice;
+      } else if (voices.length > 0) {
+        // Fallback for mobile devices where gender isn't in the name
+        const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+        if (englishVoices.length > 0) {
+          if (gender === "male") {
+            // Find a UK voice (often male on Android) or lower the pitch of the default voice
+            const gbVoice = englishVoices.find(v => v.lang.includes('GB'));
+            utterance.voice = gbVoice || englishVoices[0];
+            utterance.pitch = 0.8; // Lower pitch to sound more masculine
+            utterance.rate = 0.95;
+          } else {
+            utterance.voice = englishVoices[0]; // First voice is usually female by default
+            utterance.pitch = 1.1; // Slightly higher pitch
+          }
+        } else {
+           if (gender === "male") utterance.pitch = 0.8;
+           if (gender === "female") utterance.pitch = 1.1;
+        }
+      } else {
+         // If voices array is empty (often true on first call on mobile), just adjust pitch
+         if (gender === "male") utterance.pitch = 0.8;
+         if (gender === "female") utterance.pitch = 1.1;
       }
+
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -493,21 +520,55 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
         headers["x-user-api-key"] = userApiKey;
       }
 
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          messages: allMessages,
-          toolSlug: tool.slug,
-        }),
-      });
+      let response;
+      let retries = 2;
+      let lastError = null;
 
-      if (!response.ok) {
-        let errorMsg = "Failed to get response";
+      while (retries >= 0) {
         try {
-          const errorData = await response.json();
-          errorMsg = errorData.error || errorMsg;
-        } catch(e) {}
+          response = await fetch("/api/chat", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              messages: allMessages,
+              toolSlug: tool.slug,
+            }),
+          });
+          
+          if (response.ok) break; // Success!
+          
+          if (response.status === 429) {
+            // Don't retry quota errors
+            break;
+          }
+          
+          if (response.status === 504 && retries > 0) {
+            // Vercel cold-start timeout, wait a bit and retry
+            await new Promise(r => setTimeout(r, 1500));
+            retries--;
+            continue;
+          }
+          
+          break; // Other errors, break and handle below
+        } catch (e) {
+          lastError = e;
+          if (retries > 0) {
+            await new Promise(r => setTimeout(r, 1500));
+            retries--;
+            continue;
+          }
+          break;
+        }
+      }
+
+      if (!response || !response.ok) {
+        let errorMsg = lastError?.message || "Failed to get response (Server timeout or error)";
+        if (response) {
+          try {
+            const errorData = await response.json();
+            errorMsg = errorData.error || errorMsg;
+          } catch(e) {}
+        }
         throw new Error(errorMsg);
       }
 
@@ -613,21 +674,55 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
         headers["x-user-api-key"] = userApiKey;
       }
 
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          messages: allMessages,
-          toolSlug: tool.slug,
-        }),
-      });
+      let response;
+      let retries = 2;
+      let lastError = null;
 
-      if (!response.ok) {
-        let errorMsg = "Failed to get response";
+      while (retries >= 0) {
         try {
-          const errorData = await response.json();
-          errorMsg = errorData.error || errorMsg;
-        } catch(e) {}
+          response = await fetch("/api/chat", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              messages: allMessages,
+              toolSlug: tool.slug,
+            }),
+          });
+          
+          if (response.ok) break; // Success!
+          
+          if (response.status === 429) {
+            // Don't retry quota errors
+            break;
+          }
+          
+          if (response.status === 504 && retries > 0) {
+            // Vercel cold-start timeout, wait a bit and retry
+            await new Promise(r => setTimeout(r, 1500));
+            retries--;
+            continue;
+          }
+          
+          break; // Other errors, break and handle below
+        } catch (e) {
+          lastError = e;
+          if (retries > 0) {
+            await new Promise(r => setTimeout(r, 1500));
+            retries--;
+            continue;
+          }
+          break;
+        }
+      }
+
+      if (!response || !response.ok) {
+        let errorMsg = lastError?.message || "Failed to get response (Server timeout or error)";
+        if (response) {
+          try {
+            const errorData = await response.json();
+            errorMsg = errorData.error || errorMsg;
+          } catch(e) {}
+        }
         throw new Error(errorMsg);
       }
 
@@ -728,30 +823,48 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
     }
   };
 
-  const downloadAsPDF = (messageId: string, filename: string) => {
+  const downloadAsPDF = async (messageId: string, filename: string) => {
     const element = document.getElementById(`message-content-${messageId}`);
     if (!element) return;
     
-    const printWindow = window.open('', '', 'height=800,width=800');
-    if (!printWindow) return;
-    
-    const clone = element.cloneNode(true) as HTMLElement;
-    const mediaTags = clone.querySelectorAll('video, audio');
-    mediaTags.forEach(tag => tag.remove());
+    try {
+      // Dynamically import html2pdf for client-side rendering
+      const html2pdf = (await import('html2pdf.js')).default;
+      
+      // Clone element to prevent styling issues on the actual chat
+      const clone = element.cloneNode(true) as HTMLElement;
+      
+      // Remove video/audio elements that might break PDF generation
+      const mediaTags = clone.querySelectorAll('video, audio, iframe');
+      mediaTags.forEach(tag => tag.remove());
+      
+      // Wrap it in a clean white container for PDF
+      const wrapper = document.createElement('div');
+      wrapper.style.padding = '20px';
+      wrapper.style.backgroundColor = '#ffffff';
+      wrapper.style.color = '#000000';
+      wrapper.appendChild(clone);
+      
+      // Force black text inside the clone to ensure readability
+      const allTextElements = clone.querySelectorAll('p, span, h1, h2, h3, h4, h5, h6, li, td, th');
+      allTextElements.forEach((el: any) => {
+        el.style.color = '#000000';
+      });
 
-    printWindow.document.write('<html><head><title>Save as PDF</title>');
-    printWindow.document.write('<style>body { font-family: system-ui, sans-serif; padding: 40px; line-height: 1.6; color: #333; } pre { background: #f4f4f4; padding: 15px; border-radius: 8px; overflow-x: auto; } code { font-family: monospace; } img { max-width: 100%; height: auto; border-radius: 8px; } table { border-collapse: collapse; width: 100%; margin-bottom: 20px; } th, td { border: 1px solid #ddd; padding: 8px; text-align: left; } th { background-color: #f2f2f2; }</style>');
-    printWindow.document.write('</head><body>');
-    printWindow.document.write(clone.innerHTML);
-    printWindow.document.write('</body></html>');
-    
-    printWindow.document.close();
-    printWindow.focus();
-    
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 500);
+      const opt = {
+        margin:       10,
+        filename:     filename,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      
+      // html2pdf returns a promise
+      await html2pdf().set(opt).from(wrapper).save();
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      alert("Failed to generate PDF. Please try again.");
+    }
   };
 
   const downloadAsZip = async (messageContent: string, filename: string) => {
