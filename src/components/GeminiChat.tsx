@@ -77,7 +77,6 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editInput, setEditInput] = useState("");
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
-  const [printContent, setPrintContent] = useState("");
   
   // Chat History
   const [chatHistory, setChatHistory] = useState<ChatSession[]>([]);
@@ -846,13 +845,24 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
       const mediaTags = clone.querySelectorAll('video, audio, iframe, button, .no-print');
       mediaTags.forEach(tag => tag.remove());
       
-      setPrintContent(clone.innerHTML);
+      // Create print container
+      const printContainer = document.createElement("div");
+      printContainer.id = "print-area";
+      printContainer.innerHTML = clone.innerHTML;
       
-      // Allow React to render the printContent DOM, then trigger print
+      // Append directly to document body to bypass parent layouts and overflow blocks
+      document.body.appendChild(printContainer);
+      
+      // Add printing-active class to body
+      document.body.classList.add("printing-active");
+      
+      // Allow browser frame repaint, then trigger print
       setTimeout(() => {
         window.print();
-        setPrintContent("");
-      }, 150);
+        // Clean up
+        document.body.removeChild(printContainer);
+        document.body.classList.remove("printing-active");
+      }, 100);
     } catch (err) {
       console.error("PDF printing failed:", err);
       alert("Failed to print PDF. Please try again.");
@@ -1491,11 +1501,6 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
         </div>
       </div>
       </div>
-      {printContent && (
-        <div id="print-area" className="hidden print:block bg-white text-black p-8">
-          <div dangerouslySetInnerHTML={{ __html: printContent }} />
-        </div>
-      )}
     </>
   );
 }

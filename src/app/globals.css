@@ -185,16 +185,18 @@
 
 /* PDF Printing Media Queries */
 @media print {
-  body {
+  body.printing-active > :not(#print-area) {
+    display: none !important;
+  }
+  
+  body.printing-active {
     background-color: white !important;
     color: black !important;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
     padding: 0 !important;
     margin: 0 !important;
-  }
-  
-  #main-chat-layout {
-    display: none !important;
+    overflow: visible !important;
+    height: auto !important;
   }
   
   #print-area {
@@ -204,6 +206,7 @@
     padding: 30px !important;
     width: 100% !important;
     height: auto !important;
+    overflow: visible !important;
   }
   
   #print-area * {
