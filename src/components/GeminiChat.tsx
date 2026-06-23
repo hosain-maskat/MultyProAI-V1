@@ -522,7 +522,7 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
 
       let response;
       let retries = 2;
-      let lastError = null;
+      let lastError: any = null;
 
       while (retries >= 0) {
         try {
@@ -676,7 +676,7 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
 
       let response;
       let retries = 2;
-      let lastError = null;
+      let lastError: any = null;
 
       while (retries >= 0) {
         try {
@@ -851,7 +851,7 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
         el.style.color = '#000000';
       });
 
-      const opt = {
+      const opt: any = {
         margin:       10,
         filename:     filename,
         image:        { type: 'jpeg', quality: 0.98 },
