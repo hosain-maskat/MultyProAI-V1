@@ -843,7 +843,14 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
       wrapper.style.padding = '20px';
       wrapper.style.backgroundColor = '#ffffff';
       wrapper.style.color = '#000000';
+      wrapper.style.width = '800px'; // Give it a fixed width for consistent rendering
       wrapper.appendChild(clone);
+      
+      // CRITICAL: Append to document body so html2canvas can read computed styles
+      wrapper.style.position = 'absolute';
+      wrapper.style.left = '-9999px';
+      wrapper.style.top = '-9999px';
+      document.body.appendChild(wrapper);
       
       // Force black text inside the clone to ensure readability
       const allTextElements = clone.querySelectorAll('p, span, h1, h2, h3, h4, h5, h6, li, td, th');
@@ -861,6 +868,9 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
       
       // html2pdf returns a promise
       await html2pdf().set(opt).from(wrapper).save();
+      
+      // Clean up
+      document.body.removeChild(wrapper);
     } catch (err) {
       console.error("PDF generation failed:", err);
       alert("Failed to generate PDF. Please try again.");
@@ -1240,18 +1250,11 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
                         </button>
 
                         <button
-                          onClick={() => speakText(message.content, "male", message.id)}
-                          title={speakingMessageId === message.id ? "Stop Voice" : "Play (Male Voice)"}
-                          className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${speakingMessageId === message.id ? 'bg-blue-500/20 text-blue-300' : 'hover:bg-zinc-800/50 text-zinc-500 hover:text-zinc-300'}`}
-                        >
-                          <Volume2 className={`w-4 h-4 ${speakingMessageId === message.id ? 'text-blue-400 animate-pulse' : 'text-blue-400'}`} />
-                        </button>
-                        <button
                           onClick={() => speakText(message.content, "female", message.id)}
-                          title={speakingMessageId === message.id ? "Stop Voice" : "Play (Female Voice)"}
-                          className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${speakingMessageId === message.id ? 'bg-pink-500/20 text-pink-300' : 'hover:bg-zinc-800/50 text-zinc-500 hover:text-zinc-300'}`}
+                          title={speakingMessageId === message.id ? "Stop Voice" : "Play Voice"}
+                          className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${speakingMessageId === message.id ? 'bg-purple-500/20 text-purple-300' : 'hover:bg-zinc-800/50 text-zinc-500 hover:text-zinc-300'}`}
                         >
-                          <Volume2 className={`w-4 h-4 ${speakingMessageId === message.id ? 'text-pink-400 animate-pulse' : 'text-pink-400'}`} />
+                          <Volume2 className={`w-4 h-4 ${speakingMessageId === message.id ? 'text-purple-400 animate-pulse' : ''}`} />
                         </button>
                         <button
                           onClick={() =>
