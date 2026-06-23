@@ -859,10 +859,28 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
       // Allow browser frame repaint, then trigger print
       setTimeout(() => {
         window.print();
-        // Clean up
-        document.body.removeChild(printContainer);
-        document.body.classList.remove("printing-active");
-      }, 100);
+        
+        let cleaned = false;
+        const cleanup = () => {
+          if (cleaned) return;
+          cleaned = true;
+          if (document.body.contains(printContainer)) {
+            document.body.removeChild(printContainer);
+          }
+          document.body.classList.remove("printing-active");
+          window.removeEventListener('afterprint', cleanup);
+          window.removeEventListener('focus', cleanup);
+        };
+        
+        // Listen to afterprint (standard)
+        window.addEventListener('afterprint', cleanup);
+        
+        // Listen to window focus (in case afterprint didn't fire but user returned to app)
+        window.addEventListener('focus', cleanup);
+        
+        // Fallback cleanup after 5 seconds to restore layout
+        setTimeout(cleanup, 5000);
+      }, 250);
     } catch (err) {
       console.error("PDF printing failed:", err);
       alert("Failed to print PDF. Please try again.");
