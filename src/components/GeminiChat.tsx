@@ -1108,13 +1108,36 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                   />
                   <div className="relative mt-2">
-                    <p className="text-xs text-zinc-500">
-                      Get your free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-purple-400 hover:underline">Google AI Studio</a>.
+                    <p className="text-xs text-zinc-400">
+                      Don't have a key? Get one for free from <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-purple-400 font-bold hover:underline">Google AI Studio</a>.
                     </p>
+                    
+                    <div className="mt-4 bg-zinc-950/50 p-4 rounded-xl border border-zinc-800/50">
+                      <p className="text-sm font-bold text-emerald-400 mb-2">How to get your key (Super Easy!):</p>
+                      <ul className="text-xs text-zinc-300 space-y-2">
+                        <li className="flex items-start gap-2">
+                          <span className="text-emerald-500 font-bold">1.</span> 
+                          <span>👆 Click the purple <b className="text-white">Google AI Studio</b> link above.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-emerald-500 font-bold">2.</span> 
+                          <span>➡️ Click the big <b className="text-white">"Create API key"</b> button on their website.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-emerald-500 font-bold">3.</span> 
+                          <span>➡️ Click the blue <b className="text-white">"Create API key in new project"</b> option.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-emerald-500 font-bold">4.</span> 
+                          <span>📋 Click <b className="text-white">"Copy"</b> on your new key, and paste it in the box above!</span>
+                        </li>
+                      </ul>
+                    </div>
+
                     {isHelpMode && (
-                      <div className="absolute top-full mt-2 left-0 bg-emerald-600 text-white text-xs px-3 py-1.5 rounded-lg shadow-lg animate-bounce z-10 whitespace-nowrap">
-                        <div className="absolute -top-1 left-4 w-2 h-2 bg-emerald-600 transform rotate-45"></div>
-                        <span className="font-bold">Need a key?</span> Click the link up here! 👆
+                      <div className="absolute top-0 right-0 bg-emerald-600 text-white text-xs px-3 py-1.5 rounded-lg shadow-lg animate-bounce z-10">
+                        <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-emerald-600 transform rotate-45"></div>
+                        <span className="font-bold">Need a key?</span> Follow these easy steps! ➡️
                       </div>
                     )}
                   </div>
