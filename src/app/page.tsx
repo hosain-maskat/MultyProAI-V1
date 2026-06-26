@@ -24,8 +24,8 @@ export default function Home() {
         {/* Gradient Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-zinc-950 to-blue-900/20" />
         <div 
-          className="absolute inset-0 opacity-10 bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('https://upload.wikimedia.org/wikipedia/en/thumb/6/69/Daffodil_International_University_logo.svg/1200px-Daffodil_International_University_logo.svg.png')", backgroundSize: "50%" }} 
+          className="absolute inset-0 opacity-20 bg-center bg-no-repeat bg-cover"
+          style={{ backgroundImage: "url('/diu-building.jpg')" }} 
         />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-purple-500/10 via-transparent to-transparent rounded-full blur-3xl" />
 
@@ -35,7 +35,7 @@ export default function Home() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center overflow-hidden border border-zinc-700 p-1">
-                  <img src="https://upload.wikimedia.org/wikipedia/en/thumb/6/69/Daffodil_International_University_logo.svg/1200px-Daffodil_International_University_logo.svg.png" alt="DIU Logo" className="w-full h-full object-contain" />
+                  <img src="/diu-logo.png" alt="DIU Logo" className="w-full h-full object-contain" />
                 </div>
                 <span className="text-xl font-bold text-white">Daffodil Inteligence</span>
               </div>
@@ -88,7 +88,7 @@ export default function Home() {
             <div className="mb-12">
               <Link href="/playground/omni-ai">
                 <button className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-2xl text-lg shadow-lg shadow-purple-500/25 transition-all transform hover:scale-105 flex items-center justify-center mx-auto gap-3">
-                  <img src="https://upload.wikimedia.org/wikipedia/en/thumb/6/69/Daffodil_International_University_logo.svg/1200px-Daffodil_International_University_logo.svg.png" alt="DIU Logo" className="w-7 h-7 object-contain bg-white rounded-md p-0.5" />
+                  <img src="/diu-logo.png" alt="DIU Logo" className="w-7 h-7 object-contain bg-white rounded-md p-0.5" />
                   Chat with Personal AI
                 </button>
               </Link>
