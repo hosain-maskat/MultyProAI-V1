@@ -6,6 +6,14 @@ import { tools, categories, getToolsByCategory } from "@/lib/tools";
 import { Search, Sparkles, Zap, ArrowRight, Star, MessageSquarePlus } from "lucide-react";
 import FeedbackModal from "@/components/FeedbackModal";
 
+const DiuLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M50 5L90 25V55C90 75 50 95 50 95C50 95 10 75 10 55V25L50 5Z" fill="#1e3a8a" />
+    <path d="M10 55C10 75 50 95 50 95C50 95 90 75 90 55C90 75 50 85 10 55Z" fill="#16a34a" />
+    <text x="50" y="60" fill="white" fontSize="28" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">DIU</text>
+  </svg>
+);
+
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -21,21 +29,17 @@ export default function Home() {
     <div className="min-h-screen bg-zinc-950">
       {/* Hero Section */}
       <header className="relative overflow-hidden">
-        {/* Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-zinc-950 to-blue-900/20" />
-        <div 
-          className="absolute inset-0 opacity-20 bg-center bg-no-repeat bg-cover"
-          style={{ backgroundImage: "url('/diu-building.jpg')" }} 
-        />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-purple-500/10 via-transparent to-transparent rounded-full blur-3xl" />
+        {/* DIU Theme Gradient Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/30 via-zinc-950 to-emerald-900/20" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-blue-500/20 via-emerald-500/10 to-transparent rounded-full blur-3xl" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16">
           {/* Nav */}
           <nav className="fixed top-0 inset-x-0 z-50 bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-800/50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center overflow-hidden border border-zinc-700 p-1">
-                  <img src="/diu-logo.png" alt="DIU Logo" className="w-full h-full object-contain" />
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-900 to-emerald-800 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-blue-500/30">
+                  <DiuLogo className="w-6 h-6" />
                 </div>
                 <span className="text-xl font-bold text-white">Daffodil Inteligence</span>
               </div>
@@ -71,7 +75,7 @@ export default function Home() {
 
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
               <span className="text-white">Next-Gen </span>
-              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-blue-400 via-emerald-400 to-cyan-400 bg-clip-text text-transparent">
                 Generative AI
               </span>
               <br />
@@ -87,8 +91,8 @@ export default function Home() {
             {/* Personal Assistant Hero Button */}
             <div className="mb-12">
               <Link href="/playground/omni-ai">
-                <button className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-2xl text-lg shadow-lg shadow-purple-500/25 transition-all transform hover:scale-105 flex items-center justify-center mx-auto gap-3">
-                  <img src="/diu-logo.png" alt="DIU Logo" className="w-7 h-7 object-contain bg-white rounded-md p-0.5" />
+                <button className="px-8 py-4 bg-gradient-to-r from-blue-700 to-emerald-600 hover:from-blue-600 hover:to-emerald-500 text-white font-bold rounded-2xl text-lg shadow-lg shadow-blue-500/25 transition-all transform hover:scale-105 flex items-center justify-center mx-auto gap-3">
+                  <DiuLogo className="w-7 h-7 drop-shadow-md" />
                   Chat with Personal AI
                 </button>
               </Link>
@@ -181,8 +185,8 @@ export default function Home() {
       <footer className="border-t border-zinc-900 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-              <span className="text-white font-bold text-xs">M</span>
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-700 to-emerald-600 flex items-center justify-center">
+              <DiuLogo className="w-4 h-4" />
             </div>
             <span className="text-sm font-semibold text-zinc-400">
               Daffodil Inteligence
