@@ -23,6 +23,10 @@ export default function Home() {
       <header className="relative overflow-hidden">
         {/* Gradient Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-zinc-950 to-blue-900/20" />
+        <div 
+          className="absolute inset-0 opacity-10 bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('https://upload.wikimedia.org/wikipedia/en/thumb/6/69/Daffodil_International_University_logo.svg/1200px-Daffodil_International_University_logo.svg.png')", backgroundSize: "50%" }} 
+        />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-purple-500/10 via-transparent to-transparent rounded-full blur-3xl" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16">
@@ -33,7 +37,7 @@ export default function Home() {
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xl font-bold text-white">MultiProAI</span>
+                <span className="text-xl font-bold text-white">Daffodil Inteligence</span>
               </div>
               <div className="hidden md:flex items-center gap-6 text-sm text-zinc-400">
                 <span className="text-zinc-200 font-medium">Tools</span>
@@ -181,11 +185,11 @@ export default function Home() {
               <span className="text-white font-bold text-xs">M</span>
             </div>
             <span className="text-sm font-semibold text-zinc-400">
-              MultiProAI
+              Daffodil Inteligence
             </span>
           </div>
           <p className="text-sm text-zinc-600">
-            © 2026 MultiProAI. All rights reserved.
+            © 2026 Daffodil Inteligence. All rights reserved.
           </p>
         </div>
       </footer>

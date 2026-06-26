@@ -1513,7 +1513,7 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
             </div>
           </form>
           <p className="text-xs text-zinc-600 text-center mt-2">
-            MultiProAI can make mistakes. Verify important information.
+            Daffodil Inteligence can make mistakes. Verify important information.
           </p>
         </div>
         </div>
