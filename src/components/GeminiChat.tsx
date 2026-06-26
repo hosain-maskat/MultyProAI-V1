@@ -27,7 +27,8 @@ import {
   Menu,
   MessageSquare,
   Pencil,
-  Square
+  Square,
+  HelpCircle
 } from "lucide-react";
 import Link from "next/link";
 import type { Tool } from "@/lib/tools";
@@ -72,6 +73,7 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [isHelpMode, setIsHelpMode] = useState(false);
   const [userApiKey, setUserApiKey] = useState("");
   
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -1010,7 +1012,19 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 relative">
+            <button
+              onClick={() => setIsHelpMode(!isHelpMode)}
+              className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                isHelpMode 
+                  ? "text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 ring-2 ring-emerald-500/50" 
+                  : "text-blue-300 bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20"
+              }`}
+              title="Get Help"
+            >
+              <HelpCircle className="w-4 h-4" />
+              Help
+            </button>
             <button
               onClick={() => setIsFeedbackModalOpen(true)}
               className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full text-blue-300 bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-colors text-sm font-medium"
@@ -1037,13 +1051,22 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
                 </button>
               </>
             )}
-            <button
-              onClick={() => setIsSettingsOpen(true)}
-              className="p-2 rounded-xl hover:bg-zinc-800/50 transition-colors"
-              title="API Key Settings"
-            >
-              <Settings className="w-5 h-5 text-zinc-400" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className={`p-2 rounded-xl transition-colors ${isHelpMode && !isSettingsOpen ? 'bg-emerald-500/20 ring-2 ring-emerald-500 animate-pulse' : 'hover:bg-zinc-800/50'}`}
+                title="API Key Settings"
+              >
+                <Settings className={`w-5 h-5 ${isHelpMode && !isSettingsOpen ? 'text-emerald-400' : 'text-zinc-400'}`} />
+              </button>
+              {isHelpMode && !isSettingsOpen && (
+                <div className="absolute right-0 top-full mt-4 w-64 bg-emerald-600 text-white text-sm p-4 rounded-2xl shadow-xl shadow-emerald-500/20 animate-bounce z-50 pointer-events-none">
+                  <div className="absolute -top-2 right-3 w-4 h-4 bg-emerald-600 transform rotate-45"></div>
+                  <p className="font-bold mb-1">Step 1: Click here! 👆</p>
+                  <p className="opacity-90">Open settings to paste your free Gemini API key and chat without limits.</p>
+                </div>
+              )}
+            </div>
           </div>
         </header>
       
@@ -1068,9 +1091,15 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
               Enter your Free Google Gemini API Key to use this AI without limits. Your key is saved locally in your browser.
             </p>
             <form onSubmit={saveApiKey}>
-              <div className="space-y-4 mb-6">
+              <div className="space-y-4 mb-6 relative">
                 <div>
                   <label className="block text-sm font-medium text-zinc-300 mb-2">Gemini API Key</label>
+                  {isHelpMode && (
+                    <div className="absolute top-1 right-0 bg-emerald-600 text-white text-xs px-3 py-1.5 rounded-lg shadow-lg animate-bounce z-10 whitespace-nowrap">
+                      <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-emerald-600 transform rotate-45"></div>
+                      <span className="font-bold">Step 2:</span> Paste your key down here! 👇
+                    </div>
+                  )}
                   <input
                     type="password"
                     value={userApiKey}
@@ -1078,9 +1107,17 @@ export default function GeminiChat({ tool }: { tool: Tool }) {
                     placeholder="AIzaSy..."
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                   />
-                  <p className="text-xs text-zinc-500 mt-2">
-                    Get your free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-purple-400 hover:underline">Google AI Studio</a>.
-                  </p>
+                  <div className="relative mt-2">
+                    <p className="text-xs text-zinc-500">
+                      Get your free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-purple-400 hover:underline">Google AI Studio</a>.
+                    </p>
+                    {isHelpMode && (
+                      <div className="absolute top-full mt-2 left-0 bg-emerald-600 text-white text-xs px-3 py-1.5 rounded-lg shadow-lg animate-bounce z-10 whitespace-nowrap">
+                        <div className="absolute -top-1 left-4 w-2 h-2 bg-emerald-600 transform rotate-45"></div>
+                        <span className="font-bold">Need a key?</span> Click the link up here! 👆
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="flex gap-3 justify-end">
